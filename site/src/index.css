@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ *
+ * Kaiwa brand theme — pink & warm white, drawn from the app icon
+ * (#ee6c85 → #d94b63). Exposed as Tailwind v4 tokens so utilities like
+ * `bg-rose`, `text-ink`, `font-display` are generated automatically.
+ * ------------------------------------------------------------------ */
+@theme {
+  --color-paper: #fff8f9;
+  --color-paper-2: #fffdfe;
+  --color-paper-3: #ffffff;
+
+  --color-sumi: #3a2830; /* deep plum ink — headings */
+  --color-ink: #42303a; /* body ink */
+  --color-ink-soft: #7b6069;
+  --color-sub: #ab9199;
+
+  --color-line: #f4dde4; /* soft pink hairline */
+  --color-line-soft: #faebf0;
+
+  --color-rose: #e85d75;
+  --color-coral: #ee6c85;
+  --color-deeprose: #d94b63;
+  --color-rose-soft: #fdeef1;
+  --color-rose-soft-2: #fbe4ea;
+  --color-plum: #a6508f;
+  --color-plum-soft: #f5e7f1;
+
+  /* modern geometric sans for display + clean grotesque for body; a modern
+     JP sans keeps 会話 / furigana on-brand rather than falling back to serif */
+  --font-display: "Sora", "Inter", -apple-system, "Hiragino Sans", sans-serif;
+  --font-body: "Inter", -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-jp: "Zen Kaku Gothic New", -apple-system, "Hiragino Sans",
+    "Yu Gothic", sans-serif;
+
+  --ease-brand: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ------------------------------------------------------------------ */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--color-ink);
+  background: var(--color-paper);
+  line-height: 1.72;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* faint rose wash behind the whole page */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.7;
+  background:
+    radial-gradient(120vw 90vh at 80% -12%, rgba(238, 108, 133, 0.1), transparent 58%),
+    radial-gradient(90vw 80vh at 6% 110%, rgba(217, 75, 99, 0.07), transparent 60%);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.018em;
+}
+.jp {
+  font-family: var(--font-jp);
+  letter-spacing: normal;
+}
+
+/* subtle drift for the ensō brush motif */
+@keyframes breathe {
+  0%,
+  100% {
+    transform: rotate(-4deg) scale(1);
+  }
+  50% {
+    transform: rotate(2deg) scale(1.02);
+  }
+}
+.animate-breathe {
+  animation: breathe 22s ease-in-out infinite;
+}
+
+/* gentle float for the hero bento chips */
+@keyframes float-chip {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+.animate-float {
+  animation: float-chip 6s ease-in-out infinite;
+}
+
+/* GSAP sets initial hidden state via .from(); this is the reduced-motion /
+   no-JS fallback so content is always visible. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-breathe,
+  .animate-float {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
