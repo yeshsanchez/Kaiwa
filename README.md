@@ -4,7 +4,7 @@
 
 **Your private Japanese tutor — chat, voice calls, roleplay, corrections, and spaced repetition, running entirely on your own computer.**
 
-[![Release](https://img.shields.io/github/v/release/kroogies/Kaiwa)](https://github.com/kroogies/Kaiwa/releases/latest)
+[![Release](https://img.shields.io/github/v/release/yeshsanchez/Kaiwa)](https://github.com/yeshsanchez/Kaiwa/releases/latest)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20(beta)-lightgrey)
 ![Local first](https://img.shields.io/badge/AI-100%25%20local%20by%20default-success)
@@ -16,7 +16,7 @@ No subscriptions. No account. Your conversations never leave your machine
 
 ## Get it
 
-Grab the zip for your OS from the **[latest release](https://github.com/kroogies/Kaiwa/releases/latest)**, unzip, and run:
+Grab the zip for your OS from the **[latest release](https://github.com/yeshsanchez/Kaiwa/releases/latest)**, unzip, and run:
 
 **macOS**
 ```bash
