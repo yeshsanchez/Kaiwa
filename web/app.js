@@ -146,17 +146,22 @@ function obPanel(name) { // "choice" | "local" | "cloud"
 $("#ob-opt-local").addEventListener("click", () => { obPanel("local"); obLocalCheck(); });
 $("#ob-opt-cloud").addEventListener("click", () => { obPanel("cloud"); obCloudInit(); });
 $("#ob-ai-back").addEventListener("click", () => obPanel("choice"));
+$("#ob-engine-btn").addEventListener("click", obEngineInstall);
 
 async function obLocalCheck() {
   const h = await api.get("/api/health");
   if (!h.ollama) {
-    $("#ob-ollama-missing").classList.remove("hidden");
+    // No engine running — offer to set one up automatically (no external link).
+    const eng = await api.get("/api/setup/engine").catch(() => ({ can_manage: true }));
     $("#ob-model-dl").classList.add("hidden");
-    if (!obPoll) obPoll = setInterval(obLocalCheck, 3000); // watch for Ollama appearing
-    return;
+    $("#ob-engine-setup").classList.remove("hidden");
+    $("#ob-engine-btn").disabled = !eng.can_manage;
+    // Unsupported platform → surface the manual path up front.
+    $("#ob-engine-fallback").classList.toggle("hidden", eng.can_manage !== false);
+    return; // wait for the user to tap "Set up AI engine" (or install manually)
   }
   if (obPoll) { clearInterval(obPoll); obPoll = null; }
-  $("#ob-ollama-missing").classList.add("hidden");
+  $("#ob-engine-setup").classList.add("hidden");
   if (h.models.length) { // a model is already installed — nothing to download
     await api.post("/api/settings", { provider: "ollama" });
     updateHealth();
@@ -210,6 +215,50 @@ async function obPull(model) {
   } catch (e) {
     status.textContent = "Download failed: " + e.message;
     $("#ob-pull-btn").disabled = false;
+  }
+}
+
+/* --- step 0, local: auto-provision the engine (download + start Ollama) --- */
+async function obEngineInstall() {
+  const btn = $("#ob-engine-btn");
+  btn.disabled = true;
+  $("#ob-engine-fallback").classList.add("hidden");
+  $("#ob-engine-progress").classList.remove("hidden");
+  const status = $("#ob-engine-status"), fill = $("#ob-engine-fill");
+  status.textContent = "Starting…"; fill.style.width = "0%";
+  try {
+    const resp = await fetch("/api/setup/engine/install", { method: "POST" });
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "", ok = false;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split("\n\n"); buf = lines.pop();
+      for (const l of lines) {
+        if (!l.startsWith("data: ")) continue;
+        const d = JSON.parse(l.slice(6));
+        if (d.error) throw new Error(d.error);
+        if (d.total && d.completed != null) {
+          const pct = Math.round(d.completed / d.total * 100);
+          fill.style.width = pct + "%";
+          status.textContent = `Downloading AI engine — ${pct}%`;
+        } else if (d.status === "success") ok = true;
+        else if (d.status) status.textContent = d.status[0].toUpperCase() + d.status.slice(1) + "…";
+      }
+    }
+    if (!ok) throw new Error("engine setup did not finish");
+    fill.style.width = "100%";
+    status.textContent = "Engine ready!";
+    updateHealth();
+    $("#ob-engine-setup").classList.add("hidden");
+    obLocalCheck(); // → hardware check + model download
+  } catch (e) {
+    status.textContent = "Setup failed: " + e.message;
+    $("#ob-engine-fallback").classList.remove("hidden");
+    btn.disabled = false;
+    if (!obPoll) obPoll = setInterval(obLocalCheck, 3000); // catch a manual install
   }
 }
 

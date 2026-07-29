@@ -16,7 +16,8 @@ import requests
 
 from starlette.background import BackgroundTask
 
-from . import backup, db, dictionary, jp, llm, paths, prompts, scenarios, setup, stt, tts
+from . import (backup, db, dictionary, jp, llm, ollama_manager, paths, prompts,
+               scenarios, setup, stt, tts)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB = paths.WEB_DIR
@@ -108,6 +109,25 @@ async def setup_pull(req: Request):
                         yield f"data: {line.decode()}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)[:200]})}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache",
+                                      "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/setup/engine")
+def setup_engine():
+    """Whether Kaiwa can auto-provision a local AI engine on this machine."""
+    return ollama_manager.status()
+
+
+@app.post("/api/setup/engine/install")
+def setup_engine_install():
+    """SSE: download (if needed) the standalone Ollama binary and start it, so the
+    wizard can set up a local AI with no manual installs or external links."""
+    def gen():
+        for ev in ollama_manager.install_stream():
+            yield f"data: {json.dumps(ev)}\n\n"
 
     return StreamingResponse(gen(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache",

@@ -303,10 +303,16 @@
       </div>
 
       <div id="ob-local" class="hidden">
-        <div id="ob-ollama-missing" class="hidden">
-          <p>Local AI runs on <b>Ollama</b>, a free app.</p>
-          <p><a class="btn primary" href="https://ollama.com/download" target="_blank" rel="noopener">Download Ollama ↗</a></p>
-          <p class="sub"><svg class="icon spin"><use href="/static/icons.svg#loader"/></svg> Install and open it — I'll notice automatically…</p>
+        <div id="ob-engine-setup" class="hidden">
+          <p class="sub">Kaiwa will set up its local AI engine for you — no installs, no sign-ups, nothing to click away to.</p>
+          <button id="ob-engine-btn" class="btn primary">Set up AI engine</button>
+          <div id="ob-engine-progress" class="hidden">
+            <div class="progress"><div id="ob-engine-fill" class="progress-fill"></div></div>
+            <p id="ob-engine-status" class="sub"></p>
+          </div>
+          <p id="ob-engine-fallback" class="sub hidden">
+            Having trouble? You can <a href="https://ollama.com/download" target="_blank" rel="noopener">install Ollama manually</a> — I'll notice it automatically.
+          </p>
         </div>
         <div id="ob-model-dl" class="hidden">
           <p id="ob-hw-note" class="sub"></p>
