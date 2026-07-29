@@ -9,7 +9,7 @@
 #if MyAppVersion == ""
   #define MyAppVersion "0.0.0-dev"
 #endif
-#define MyAppPublisher "kroogies"
+#define MyAppPublisher "yeshsanchez"
 #define MyAppExeName "Kaiwa.exe"
 
 [Setup]

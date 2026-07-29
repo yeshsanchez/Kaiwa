@@ -104,7 +104,7 @@ if IS_MAC:
         coll,
         name="Kaiwa.app",
         icon=ICON,
-        bundle_identifier="com.kroogies.kaiwa",
+        bundle_identifier="com.yeshsanchez.kaiwa",
         info_plist={
             "CFBundleName": "Kaiwa",
             "CFBundleDisplayName": "Kaiwa",
