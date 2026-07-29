@@ -53,13 +53,16 @@ jobs:
           bash packaging/stage_whisper.sh vendor/whisper
       - name: Build app bundle
         run: pyinstaller packaging/kaiwa.spec --noconfirm
-      - name: Bundle VOICEVOX (if engine staged; copied post-build so it isn't repackaged)
+      - name: Bundle VOICEVOX (best-effort, ~1.7 GB; copied post-build so it isn't repackaged)
+        continue-on-error: true   # never fail the installer over the TTS engine
         run: |
+          brew install sevenzip
+          python packaging/fetch_voicevox_mac.py
           if [ -d vendor/voicevox ]; then
             cp -R vendor/voicevox "dist/Kaiwa.app/Contents/Frameworks/vendor/voicevox"
             echo "VOICEVOX bundled into the .app"
           else
-            echo "no staged VOICEVOX engine — skipping (built locally for releases)"
+            echo "VOICEVOX not staged — skipping (macOS falls back to the say voice)"
           fi
       - name: Package .dmg
         run: hdiutil create -volname Kaiwa -srcfolder "dist/Kaiwa.app" -ov -format UDZO "Kaiwa-macos.dmg"
