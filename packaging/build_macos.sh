@@ -78,25 +78,34 @@ if [ ! -d vendor/voicevox ]; then
   "$PYTHON" packaging/fetch_voicevox_mac.py || true
 fi
 if [ -d vendor/voicevox ]; then
-  echo "==> Bundling VOICEVOX into the app"
-  rm -rf "dist/Kaiwa.app/Contents/Frameworks/vendor/voicevox"
-  cp -R vendor/voicevox "dist/Kaiwa.app/Contents/Frameworks/vendor/voicevox"
+  echo "==> Bundling VOICEVOX (into Contents/Resources, not Frameworks)"
+  # VOICEVOX embeds a Python.framework whose layout codesign can't sign as a
+  # nested bundle (ambiguous app/framework; its *.dist-info also breaks --deep).
+  # Anything under Contents/Frameworks is walked as *code* and must sign, so the
+  # engine goes in Contents/Resources instead — there codesign seals it as plain
+  # data (hashed). The app resolves the engine at <Frameworks>/vendor/voicevox
+  # (paths.VENDOR_DIR), so leave a symlink there pointing at the real copy.
+  APP="dist/Kaiwa.app"
+  rm -rf "$APP/Contents/Resources/voicevox"
+  cp -R vendor/voicevox "$APP/Contents/Resources/voicevox"
+  mkdir -p "$APP/Contents/Frameworks/vendor"
+  rm -rf "$APP/Contents/Frameworks/vendor/voicevox"
+  ln -s ../../Resources/voicevox "$APP/Contents/Frameworks/vendor/voicevox"
 else
   echo "==> VOICEVOX not staged — skipping (app will use the macOS 'say' voice)"
 fi
 
-# 5b. Re-seal the bundle. VOICEVOX (and any vendored binaries) land inside
-#     Contents/Frameworks *after* PyInstaller signed the app, which invalidates
-#     the code-signature seal — the .dmg would otherwise open as "Kaiwa is
-#     damaged and can't be opened" for everyone. codesign --deep chokes on
-#     VOICEVOX's engine_internal/*.dist-info, so ad-hoc re-sign the nested
-#     Mach-O binaries first, then reseal the top-level bundle (non-deep).
+# 5b. Re-seal the bundle. Bundled binaries (whisper, and the VOICEVOX symlink
+#     target) land after PyInstaller signed the app, invalidating the seal — the
+#     .dmg would otherwise open as "Kaiwa is damaged and can't be opened". Ad-hoc
+#     re-sign every Mach-O under Frameworks/ (VOICEVOX lives in Resources/ now,
+#     so it's sealed as data, not walked as nested code), then reseal the
+#     top-level bundle (non-deep; --deep can't handle VOICEVOX's Python.framework
+#     / *.dist-info) and verify — a broken seal fails the build here, loudly.
 echo "==> Re-signing (ad-hoc) so the seal matches the bundled contents"
-if [ -d "dist/Kaiwa.app/Contents/Frameworks/vendor" ]; then
-  find "dist/Kaiwa.app/Contents/Frameworks/vendor" -type f \
-    \( -name '*.dylib' -o -name '*.so' -o -perm -u+x \) -print0 \
-    | while IFS= read -r -d '' f; do codesign --force --sign - "$f" 2>/dev/null || true; done
-fi
+while IFS= read -r -d '' f; do
+  if file "$f" | grep -q "Mach-O"; then codesign --force --sign - "$f" 2>/dev/null || true; fi
+done < <(find "dist/Kaiwa.app/Contents/Frameworks" -type f -print0)
 codesign --force --sign - "dist/Kaiwa.app"
 codesign --verify --strict --verbose=2 "dist/Kaiwa.app"
 
