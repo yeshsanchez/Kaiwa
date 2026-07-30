@@ -179,6 +179,7 @@ async function obLocalCheck() {
 
 async function obPull(model) {
   $("#ob-pull-btn").disabled = true;
+  $("#ob-ai-back").disabled = true;   // lock nav during the model download
   $("#ob-pull-progress").classList.remove("hidden");
   const status = $("#ob-pull-status"), fill = $("#ob-pull-fill");
   try {
@@ -215,6 +216,8 @@ async function obPull(model) {
   } catch (e) {
     status.textContent = "Download failed: " + e.message;
     $("#ob-pull-btn").disabled = false;
+  } finally {
+    $("#ob-ai-back").disabled = false;   // re-enable nav once the download settles
   }
 }
 
@@ -222,6 +225,7 @@ async function obPull(model) {
 async function obEngineInstall() {
   const btn = $("#ob-engine-btn");
   btn.disabled = true;
+  $("#ob-ai-back").disabled = true;   // lock nav so a mid-download "Back" can't break setup
   $("#ob-engine-fallback").classList.add("hidden");
   $("#ob-engine-progress").classList.remove("hidden");
   const status = $("#ob-engine-status"), fill = $("#ob-engine-fill");
@@ -259,6 +263,8 @@ async function obEngineInstall() {
     $("#ob-engine-fallback").classList.remove("hidden");
     btn.disabled = false;
     if (!obPoll) obPoll = setInterval(obLocalCheck, 3000); // catch a manual install
+  } finally {
+    $("#ob-ai-back").disabled = false;   // re-enable nav once the download settles
   }
 }
 

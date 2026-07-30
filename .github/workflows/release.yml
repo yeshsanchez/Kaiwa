@@ -36,7 +36,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller pillow
       - name: Generate .ico icon
-        run: python -c "from PIL import Image; im=Image.open('web/icon-512.png').convert('RGBA'); im.save('packaging/kaiwa.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
+        run: python -c "from PIL import Image; im=Image.open('packaging/kaiwa-icon-1024.png').convert('RGBA'); im.save('packaging/kaiwa.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
       - name: Fetch bundled resources (JMdict + whisper model)
         run: |
           python packaging/fetch_jmdict.py

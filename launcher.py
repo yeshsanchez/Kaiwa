@@ -83,6 +83,24 @@ def _start_voicevox() -> None:
         pass
 
 
+def _start_ollama() -> None:
+    """Bring the local AI engine back up on relaunch.
+
+    VOICEVOX is re-launched on every open; Ollama wasn't — so a Kaiwa-managed
+    engine that stopped (typically after a reboot) left a returning user with no
+    LLM until they re-ran the setup wizard. If the user is on the local provider
+    and an engine is installed but not currently answering, start it. No-op for
+    cloud users and for a first run the wizard hasn't provisioned yet."""
+    try:
+        from server import db, ollama_manager
+        if db.get_setting("provider", "ollama") != "ollama":
+            return
+        if ollama_manager.is_installed():
+            ollama_manager.start()  # returns immediately if it's already up
+    except Exception:
+        pass
+
+
 def _open_browser_when_ready() -> None:
     # A cold first start (imports + DB init) can take a while on slow machines.
     for _ in range(120):
@@ -102,6 +120,7 @@ def main() -> None:
     from server import paths
     _clear_quarantine(paths.VENDOR_DIR)  # un-quarantine bundled whisper + voicevox helpers
     threading.Thread(target=_start_voicevox, daemon=True).start()  # ~20s boot, don't block
+    threading.Thread(target=_start_ollama, daemon=True).start()    # relaunch: bring local AI back up
     threading.Thread(target=_open_browser_when_ready, daemon=True).start()
     import uvicorn
     from server.main import app
