@@ -1,8 +1,13 @@
 name: Build installers
 
-# Manual runs (workflow_dispatch) build + upload artifacts for debugging without
-# publishing anything. Pushing a version tag (v*) additionally creates a DRAFT
-# GitHub Release with both installers attached, for you to review then publish.
+# Manual runs (workflow_dispatch) build + upload the Windows installer artifact
+# for debugging without publishing anything. Pushing a version tag (v*)
+# additionally creates a DRAFT GitHub Release with the Windows installer.
+#
+# macOS is NOT built here: GitHub's macos-13 (Intel) runners are effectively
+# unschedulable (runs sit queued for hours, then cancel), so the .dmg is built
+# locally on an Intel Mac with packaging/build_macos.sh and attached to the
+# draft release by hand (gh release upload <tag> Kaiwa-macos.dmg).
 on:
   workflow_dispatch:
     inputs:
@@ -18,59 +23,6 @@ permissions:
   contents: write
 
 jobs:
-  macos:
-    runs-on: macos-13   # Intel (x64) runner — matches Kaiwa's documented target
-    timeout-minutes: 40  # fail fast instead of hanging to the 24h ceiling
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
-      - name: Generate .icns icon
-        run: |
-          set -e
-          mkdir -p packaging/kaiwa.iconset
-          sips -z 512 512 web/icon-512.png --out packaging/kaiwa.iconset/icon_512x512.png
-          sips -z 256 256 web/icon-512.png --out packaging/kaiwa.iconset/icon_256x256.png
-          sips -z 128 128 web/icon-512.png --out packaging/kaiwa.iconset/icon_128x128.png
-          sips -z 64  64  web/icon-512.png --out packaging/kaiwa.iconset/icon_32x32@2x.png
-          sips -z 32  32  web/icon-512.png --out packaging/kaiwa.iconset/icon_32x32.png
-          sips -z 16  16  web/icon-512.png --out packaging/kaiwa.iconset/icon_16x16.png
-          iconutil -c icns packaging/kaiwa.iconset -o packaging/kaiwa.icns
-      - name: Fetch bundled resources (JMdict + whisper model)
-        run: |
-          python packaging/fetch_jmdict.py
-          python packaging/fetch_whisper_model.py
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Bundle whisper.cpp (speech-to-text)
-        run: |
-          brew install whisper-cpp
-          bash packaging/stage_whisper.sh vendor/whisper
-      - name: Build app bundle
-        run: pyinstaller packaging/kaiwa.spec --noconfirm
-      - name: Bundle VOICEVOX (best-effort, ~1.7 GB; copied post-build so it isn't repackaged)
-        continue-on-error: true   # never fail the installer over the TTS engine
-        run: |
-          brew install sevenzip
-          python packaging/fetch_voicevox_mac.py
-          if [ -d vendor/voicevox ]; then
-            cp -R vendor/voicevox "dist/Kaiwa.app/Contents/Frameworks/vendor/voicevox"
-            echo "VOICEVOX bundled into the .app"
-          else
-            echo "VOICEVOX not staged — skipping (macOS falls back to the say voice)"
-          fi
-      - name: Package .dmg
-        run: hdiutil create -volname Kaiwa -srcfolder "dist/Kaiwa.app" -ov -format UDZO "Kaiwa-macos.dmg"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kaiwa-macos-dmg
-          path: Kaiwa-macos.dmg
-
   windows:
     runs-on: windows-latest
     timeout-minutes: 40  # fail fast instead of hanging to the 24h ceiling
@@ -122,7 +74,7 @@ jobs:
           path: dist_installer/Kaiwa-Setup.exe
 
   release:
-    needs: [macos, windows]
+    needs: [windows]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
@@ -134,6 +86,11 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
+          append_body: true
+          body: |
+            > **macOS build:** not produced by CI (the macos-13 Intel runner is
+            > effectively unschedulable). Build it locally on an Intel Mac with
+            > `packaging/build_macos.sh`, then attach it before publishing:
+            > `gh release upload ${{ github.ref_name }} Kaiwa-macos.dmg`
           files: |
-            artifacts/kaiwa-macos-dmg/Kaiwa-macos.dmg
             artifacts/kaiwa-windows-exe/Kaiwa-Setup.exe
