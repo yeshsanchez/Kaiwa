@@ -15,6 +15,10 @@ on:
         description: "Version label for a manual build"
         required: false
         default: "0.0.0-dev"
+      publish_to_tag:
+        description: "If set, upload the built installer to this existing release tag"
+        required: false
+        default: ""
   push:
     tags:
       - "v*"
@@ -72,6 +76,11 @@ jobs:
         with:
           name: kaiwa-windows-exe
           path: dist_installer/Kaiwa-Setup.exe
+      - name: Attach installer to an existing release (optional)
+        if: ${{ inputs.publish_to_tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ inputs.publish_to_tag }}" dist_installer/Kaiwa-Setup.exe --clobber --repo ${{ github.repository }}
 
   release:
     needs: [windows]
