@@ -19,9 +19,11 @@ from . import paths
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(paths.DATA_DIR, "tts_cache")
 ENGINES = {
-    # prefix: (label, base_url) — anything VOICEVOX-API-compatible slots in here
-    "vv": ("VOICEVOX", "http://localhost:50021"),
-    "aivis": ("AivisSpeech", "http://localhost:10101"),
+    # prefix: (label, base_url) — anything VOICEVOX-API-compatible slots in here.
+    # 127.0.0.1, not "localhost": on Windows localhost resolves to IPv6 ::1 first
+    # and stalls until timeout, since these engines bind IPv4 only.
+    "vv": ("VOICEVOX", "http://127.0.0.1:50021"),
+    "aivis": ("AivisSpeech", "http://127.0.0.1:10101"),
 }
 PREFERRED_VV_STYLES = [8, 2, 3, 13, 14]  # 春日部つむぎ, 四国めたん, ずんだもん, 青山龍星, 冥鳴ひまり
 IS_WINDOWS = platform.system() == "Windows"
