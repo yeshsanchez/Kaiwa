@@ -12,7 +12,10 @@ import os
 
 import requests
 
-OLLAMA = os.environ.get("KAIWA_OLLAMA_URL", "http://localhost:11434")
+# 127.0.0.1, not "localhost": on Windows localhost resolves to IPv6 ::1 first,
+# but Ollama binds IPv4 only, so a "localhost" probe stalls on ::1 until timeout
+# and reports Ollama as down even when it's running.
+OLLAMA = os.environ.get("KAIWA_OLLAMA_URL", "http://127.0.0.1:11434")
 PREFERRED = ["qwen3:4b-instruct-2507-q4_K_M", "qwen3:4b-instruct", "qwen3:4b",
              "qwen2.5:7b-instruct", "qwen2.5:7b"]
 
