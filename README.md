@@ -16,7 +16,41 @@ No subscriptions. No account. Your conversations never leave your machine
 
 ## Get it
 
-Grab the zip for your OS from the **[latest release](https://github.com/yeshsanchez/Kaiwa/releases/latest)**, unzip, and run:
+### Install (recommended — no terminal)
+
+Download the installer for your OS from the **[latest release](https://github.com/yeshsanchez/Kaiwa/releases/latest)**:
+
+- **macOS** — open **`Kaiwa-macos.dmg`** and drag Kaiwa into Applications.
+  (Intel build; runs on Apple Silicon via Rosetta.) First launch needs one
+  extra click — see [Opening it the first time on macOS](#opening-it-the-first-time-on-macos).
+- **Windows (beta)** — run **`Kaiwa-Setup.exe`** and follow the prompts.
+
+Offline speech-to-text (whisper.cpp), VOICEVOX voices, and the JMdict
+dictionary are **bundled** — nothing else to download. The only external piece
+is the local AI: on first launch an onboarding wizard sets up **Ollama** for
+you, checks your hardware, recommends a model that will actually be responsive
+on it, and takes ~30s to warm up.
+
+### Opening it the first time on macOS
+
+The Mac app is **ad-hoc signed** (not notarized by Apple), so on first launch
+Gatekeeper will refuse to open it — *"Apple cannot check it for malicious
+software."* This is normal for a free, independently distributed app. Open it
+with any one of these (you only do it once):
+
+- **Right-click (or Control-click) the app → Open**, then click **Open** in the
+  dialog. macOS remembers the choice and opens it normally after that.
+- Or double-click it, dismiss the warning, then go to **System Settings →
+  Privacy & Security**, scroll down, and click **Open Anyway** next to the
+  Kaiwa message.
+- Or from Terminal, clear the quarantine flag:
+  `xattr -dr com.apple.quarantine /Applications/Kaiwa.app`
+  (point it at wherever you put the app / .dmg).
+
+### From source (developers)
+
+`git clone` this repo instead — `main` is the stable release, `dev` is where
+work happens — then:
 
 **macOS**
 ```bash
@@ -25,19 +59,16 @@ Grab the zip for your OS from the **[latest release](https://github.com/yeshsanc
 ```
 Voice input additionally needs whisper.cpp: `brew install whisper-cpp`
 
-**Windows (beta)** — in PowerShell:
+**Windows** — in PowerShell:
 ```powershell
 .\setup.ps1
 .\run.ps1     # → http://localhost:8130
 ```
 
-Both need [Ollama](https://ollama.com) installed (the free local AI that powers
-Kaiwa by default). First launch opens an onboarding wizard that checks your
-hardware, recommends a model that will actually be responsive on it, and takes
-~30s to warm up.
-
-> Developing or contributing? `git clone` this repo instead — `main` is the
-> stable release, `dev` is where work happens.
+This path needs [Ollama](https://ollama.com) installed separately (the free
+local AI that powers Kaiwa by default). First launch opens the same onboarding
+wizard: it checks your hardware, recommends a responsive model, and warms up in
+~30s.
 
 ## What it does
 
