@@ -10,6 +10,10 @@ on:
         description: "Version label for a manual build"
         required: false
         default: "0.0.0-dev"
+      publish_release:
+        description: "If set to a release tag (e.g. v0.2.0), replace that release's Windows installer with this build"
+        required: false
+        default: ""
   push:
     tags:
       - "v*"
@@ -111,6 +115,14 @@ jobs:
         with:
           name: kaiwa-windows-exe
           path: dist_installer/Kaiwa-Setup.exe
+      - name: Replace Windows installer on an existing release
+        if: ${{ github.event.inputs.publish_release != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.inputs.publish_release }}" \
+            dist_installer/Kaiwa-Setup.exe --clobber --repo "$GITHUB_REPOSITORY"
 
   release:
     needs: [macos, windows]
