@@ -9,6 +9,9 @@ from . import paths
 
 MODEL_NAME = "ggml-small.bin"  # ~465 MB; good accuracy/latency for Japanese on CPU
 _EXE = ".exe" if os.name == "nt" else ""
+# The packaged app is windowed, so a console child (whisper-cli) would flash its
+# own window on Windows unless suppressed.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
 def _model() -> str | None:
@@ -69,6 +72,7 @@ def transcribe(wav_bytes: bytes, language: str = "ja") -> str:
             [_bin(), "-m", _model(), "-f", path, "-l", language,
              "-t", "6", "-nt", "--no-prints"],
             capture_output=True, text=True, timeout=120, env=paths.system_env(),
+            creationflags=_NO_WINDOW,
         )
         text = proc.stdout.strip()
         # strip bracketed non-speech artifacts like [音楽], (笑い)

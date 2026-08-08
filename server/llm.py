@@ -9,6 +9,7 @@ Cloud providers use raw HTTP (requests) on purpose — no SDKs, zero extra depen
 """
 import json
 import os
+import time
 
 import requests
 
@@ -37,15 +38,27 @@ PROVIDERS = {
 
 _model_cache = None
 
+# A single /api/health resolves the model AND lists models, and the onboarding
+# wizard polls health every few seconds — a tiny TTL collapses the duplicate
+# tags probes (each miss on a down/firewalled Ollama waits the full timeout)
+# without noticeably delaying detection of a freshly-pulled model.
+_models_list_cache: dict = {"at": 0.0, "v": []}
+_MODELS_TTL = 2.0
+
 
 # ------------------------------------------------------------------- ollama
 
 def list_models() -> list:
+    now = time.monotonic()
+    if now - _models_list_cache["at"] < _MODELS_TTL:
+        return _models_list_cache["v"]
     try:
-        r = requests.get(f"{OLLAMA}/api/tags", timeout=5)
-        return [m["name"] for m in r.json().get("models", [])]
+        r = requests.get(f"{OLLAMA}/api/tags", timeout=3)
+        models = [m["name"] for m in r.json().get("models", [])]
     except Exception:
-        return []
+        models = []
+    _models_list_cache.update(at=now, v=models)
+    return models
 
 
 def resolve_model(preferred: str | None = None) -> str | None:

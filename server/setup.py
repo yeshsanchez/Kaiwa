@@ -8,6 +8,10 @@ import os
 import platform
 import subprocess
 
+# The packaged app is windowed, so a console child (tailscale) would flash its
+# own window on Windows unless suppressed.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
 
 def _ram_bytes() -> int | None:
     system = platform.system()
@@ -84,7 +88,8 @@ def phone_info() -> dict:
     for ts in _TAILSCALE_PATHS:
         try:
             out = subprocess.check_output([ts, "status", "--json"], timeout=5,
-                                          stderr=subprocess.DEVNULL)
+                                          stderr=subprocess.DEVNULL,
+                                          creationflags=_NO_WINDOW)
             st = json.loads(out)
             running = st.get("BackendState") == "Running"
             dns = ((st.get("Self") or {}).get("DNSName") or "").rstrip(".")
