@@ -13,6 +13,7 @@ __pycache__/
 # ---- personal notes & local tool state
 /ABOUT-KAIWA.txt
 /.claude/
+/CLAUDE.md
 
 # ---- OS / misc
 .DS_Store
