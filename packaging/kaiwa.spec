@@ -18,12 +18,19 @@ IS_WIN = os.name == "nt"
 ROOT = os.path.abspath(os.path.join(SPECPATH, os.pardir))
 
 # --- data files & tricky dependencies -------------------------------------
-# The web UI is served read-only from inside the bundle. Large models
-# (whisper weights, JMdict source) are NOT bundled — they download to the
-# user's data dir on first run (see server/paths.py).
+# The web UI is served read-only from inside the bundle. The JMdict source still
+# downloads to the user's data dir on first run (see server/paths.py).
 datas = [(os.path.join(ROOT, "web"), "web")]
 binaries = []
 hiddenimports = ["server.main"]
+
+# Bundle the whisper STT model when it's present at build time (CI downloads it
+# into models/ before this step). It lands at _internal/models inside the frozen
+# app, where stt.py looks for it — so voice input works on a fresh install with
+# no extra download. Optional: a local build without the file still succeeds.
+_whisper_model = os.path.join(ROOT, "models", "ggml-small.bin")
+if os.path.exists(_whisper_model):
+    datas.append((_whisper_model, "models"))
 
 # Packages that ship data files or use dynamic imports PyInstaller can miss.
 for pkg in ("unidic_lite", "fugashi", "pykakasi", "jaconv"):

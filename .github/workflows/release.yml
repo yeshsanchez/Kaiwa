@@ -40,6 +40,12 @@ jobs:
           sips -z 32  32  web/icon-512.png --out packaging/kaiwa.iconset/icon_32x32.png
           sips -z 16  16  web/icon-512.png --out packaging/kaiwa.iconset/icon_16x16.png
           iconutil -c icns packaging/kaiwa.iconset -o packaging/kaiwa.icns
+      - name: Download whisper STT model
+        shell: bash
+        run: |
+          mkdir -p models
+          curl -L --fail --retry 3 -o models/ggml-small.bin \
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin
       - name: Build app bundle
         run: pyinstaller packaging/kaiwa.spec --noconfirm
       - name: Package .dmg
@@ -62,6 +68,12 @@ jobs:
           pip install -r requirements.txt pyinstaller pillow
       - name: Generate .ico icon
         run: python -c "from PIL import Image; im=Image.open('web/icon-512.png').convert('RGBA'); im.save('packaging/kaiwa.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
+      - name: Download whisper STT model
+        shell: bash
+        run: |
+          mkdir -p models
+          curl -L --fail --retry 3 -o models/ggml-small.bin \
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin
       - name: Build app
         run: pyinstaller packaging/kaiwa.spec --noconfirm
       - name: Build installer (Inno Setup)

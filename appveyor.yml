@@ -19,6 +19,11 @@ build_script:
       # App icon from the PNG.
       & $py -c "from PIL import Image; im=Image.open('web/icon-512.png').convert('RGBA'); im.save('packaging/kaiwa.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
       if ($LASTEXITCODE -ne 0) { throw "icon generation failed" }
+      # Whisper STT model — bundled by the spec (into _internal/models) so voice
+      # input works on a fresh install without a separate download.
+      New-Item -ItemType Directory -Force -Path models | Out-Null
+      & curl.exe -L --fail --retry 3 -o models/ggml-small.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin
+      if ($LASTEXITCODE -ne 0) { throw "whisper model download failed" }
       # Freeze the app (onedir) with PyInstaller.
       & $py -m PyInstaller packaging/kaiwa.spec --noconfirm
       if ($LASTEXITCODE -ne 0) { throw "pyinstaller failed" }
