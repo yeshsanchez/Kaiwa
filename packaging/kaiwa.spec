@@ -5,6 +5,7 @@ Run from the repo root:  pyinstaller packaging/kaiwa.spec
 Produces dist/Kaiwa.app on macOS and dist/Kaiwa/ (onedir) on Windows.
 The .dmg / .exe installers are wrapped around those by the CI workflow.
 """
+import glob
 import os
 import sys
 
@@ -24,13 +25,17 @@ datas = [(os.path.join(ROOT, "web"), "web")]
 binaries = []
 hiddenimports = ["server.main"]
 
-# Bundle the whisper STT model when it's present at build time (CI downloads it
-# into models/ before this step). It lands at _internal/models inside the frozen
-# app, where stt.py looks for it — so voice input works on a fresh install with
-# no extra download. Optional: a local build without the file still succeeds.
+# Bundle the offline models when present at build time (CI downloads them into
+# models/ before this step): the whisper STT weights and the JMdict dictionary
+# source. Both land at _internal/models inside the frozen app, where stt.py and
+# dictionary.py look — so voice input and word lookups work on a fresh install
+# with no extra download. Optional: a local build without them still succeeds.
 _whisper_model = os.path.join(ROOT, "models", "ggml-small.bin")
 if os.path.exists(_whisper_model):
     datas.append((_whisper_model, "models"))
+_jmdict = sorted(glob.glob(os.path.join(ROOT, "models", "jmdict-eng-*.json")))
+if _jmdict:
+    datas.append((_jmdict[-1], "models"))
 
 # Packages that ship data files or use dynamic imports PyInstaller can miss.
 for pkg in ("unidic_lite", "fugashi", "pykakasi", "jaconv"):

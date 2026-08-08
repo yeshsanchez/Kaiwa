@@ -19,11 +19,18 @@ build_script:
       # App icon from the PNG.
       & $py -c "from PIL import Image; im=Image.open('web/icon-512.png').convert('RGBA'); im.save('packaging/kaiwa.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
       if ($LASTEXITCODE -ne 0) { throw "icon generation failed" }
-      # Whisper STT model — bundled by the spec (into _internal/models) so voice
-      # input works on a fresh install without a separate download.
+      # Offline models — whisper (STT) + JMdict (dictionary). Bundled by the spec
+      # into _internal/models so voice input and word lookups work on a fresh
+      # install without a separate download.
       New-Item -ItemType Directory -Force -Path models | Out-Null
       & curl.exe -L --fail --retry 3 -o models/ggml-small.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin
       if ($LASTEXITCODE -ne 0) { throw "whisper model download failed" }
+      $jm = (Invoke-RestMethod https://api.github.com/repos/scriptin/jmdict-simplified/releases/latest).assets |
+            Where-Object { $_.name -match '^jmdict-eng-[0-9].*\.json\.zip$' } | Select-Object -First 1
+      & curl.exe -L --fail --retry 3 -o jmdict.zip $jm.browser_download_url
+      if ($LASTEXITCODE -ne 0) { throw "JMdict download failed" }
+      Expand-Archive -Path jmdict.zip -DestinationPath models -Force
+      Remove-Item jmdict.zip
       # Freeze the app (onedir) with PyInstaller.
       & $py -m PyInstaller packaging/kaiwa.spec --noconfirm
       if ($LASTEXITCODE -ne 0) { throw "pyinstaller failed" }

@@ -13,8 +13,14 @@ DB = os.path.join(paths.DATA_DIR, "jmdict.db")
 
 
 def _source_json() -> str | None:
-    hits = sorted(glob.glob(os.path.join(paths.MODELS_DIR, "jmdict-eng-*.json")))
-    return hits[-1] if hits else None
+    # Look in the writable data dir (downloaded on first run) and next to the app
+    # (frozen onedir: _internal/models, where the installer bundles it) so the
+    # offline dictionary works whichever way the build shipped the source.
+    for d in (paths.MODELS_DIR, os.path.join(paths.APP_ROOT, "models")):
+        hits = sorted(glob.glob(os.path.join(d, "jmdict-eng-*.json")))
+        if hits:
+            return hits[-1]
+    return None
 
 
 def available() -> bool:
