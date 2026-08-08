@@ -145,6 +145,7 @@ function obPanel(name) { // "choice" | "local" | "cloud"
 }
 $("#ob-opt-local").addEventListener("click", () => { obPanel("local"); obLocalCheck(); });
 $("#ob-opt-cloud").addEventListener("click", () => { obPanel("cloud"); obCloudInit(); });
+$("#ob-use-cloud").addEventListener("click", () => { obPanel("cloud"); obCloudInit(); });
 $("#ob-ai-back").addEventListener("click", () => obPanel("choice"));
 
 async function obLocalCheck() {

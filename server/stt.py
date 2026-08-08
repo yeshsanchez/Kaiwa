@@ -8,8 +8,24 @@ import tempfile
 from . import paths
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL = os.path.join(paths.MODELS_DIR, "ggml-small.bin")
 _EXE = ".exe" if os.name == "nt" else ""
+# The parent app is windowed (no console), so a console child like whisper-cli
+# would pop its own window on Windows unless we suppress it.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+# Whisper weights download to the writable data dir on first run, but a build may
+# also bundle them next to the app (frozen onedir: _internal/models). Check both
+# so voice input works whichever way the installer shipped the model.
+_MODEL_NAME = "ggml-small.bin"
+_MODEL_DIRS = [paths.MODELS_DIR, os.path.join(paths.APP_ROOT, "models")]
+
+
+def _model() -> str | None:
+    for d in _MODEL_DIRS:
+        p = os.path.join(d, _MODEL_NAME)
+        if os.path.exists(p):
+            return p
+    return None
 
 
 def _bin() -> str | None:
@@ -30,7 +46,7 @@ def _bin() -> str | None:
 
 
 def available() -> bool:
-    return _bin() is not None and os.path.exists(MODEL)
+    return _bin() is not None and _model() is not None
 
 
 def transcribe(wav_bytes: bytes, language: str = "ja") -> str:
@@ -39,9 +55,10 @@ def transcribe(wav_bytes: bytes, language: str = "ja") -> str:
         path = f.name
     try:
         proc = subprocess.run(
-            [_bin(), "-m", MODEL, "-f", path, "-l", language,
+            [_bin(), "-m", _model(), "-f", path, "-l", language,
              "-t", "6", "-nt", "--no-prints"],
             capture_output=True, text=True, timeout=120,
+            creationflags=_NO_WINDOW,
         )
         text = proc.stdout.strip()
         # strip bracketed non-speech artifacts like [音楽], (笑い)

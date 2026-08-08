@@ -5,6 +5,8 @@ LLM: Ollama (Qwen3-4B) · STT: whisper.cpp · TTS: VOICEVOX / macOS say
 import io
 import json
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 
 from fastapi import FastAPI, Request, UploadFile, File
@@ -61,22 +63,46 @@ app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 # ------------------------------------------------------------------- health
 
+_health_cache: dict = {"at": 0.0, "data": None}
+_HEALTH_TTL = 2.0  # keeps the onboarding poll + 20s interval + repeated wizard
+                   # steps cheap without going stale during first-run setup.
+
+
 @app.get("/api/health")
 def health():
-    cfg = llm_config()
-    return {
+    now = time.monotonic()
+    if _health_cache["data"] is not None and now - _health_cache["at"] < _HEALTH_TTL:
+        return _health_cache["data"]
+    # Probe every subsystem concurrently. Each is a blocking network/FS call, and
+    # on Windows a closed or firewalled port waits the full socket timeout — done
+    # in series this made first-run onboarding hang for many seconds per step.
+    with ThreadPoolExecutor(max_workers=7) as ex:
+        futures = {
+            "ollama": ex.submit(llm.ollama_up),
+            "models": ex.submit(llm.list_models),
+            "whisper": ex.submit(stt.available),
+            "voicevox": ex.submit(tts.voicevox_up),
+            "aivis": ex.submit(tts.engine_up, "aivis"),
+            "tokenizer": ex.submit(jp.backend_name),
+            "dictionary": ex.submit(dictionary.available),
+        }
+        r = {k: f.result() for k, f in futures.items()}
+    cfg = llm_config()  # resolve_model reuses the models probe via list_models' cache
+    data = {
         "provider": cfg["provider"],
         "provider_label": llm.PROVIDERS[cfg["provider"]]["label"],
         "llm_ready": llm.not_ready_reason(cfg) is None,
-        "ollama": llm.ollama_up(),
+        "ollama": r["ollama"],
         "model": cfg["model"],
-        "models": llm.list_models(),
-        "whisper": stt.available(),
-        "voicevox": tts.voicevox_up(),
-        "aivis": tts.engine_up("aivis"),
-        "tokenizer": jp.backend_name(),
-        "dictionary": dictionary.available(),
+        "models": r["models"],
+        "whisper": r["whisper"],
+        "voicevox": r["voicevox"],
+        "aivis": r["aivis"],
+        "tokenizer": r["tokenizer"],
+        "dictionary": r["dictionary"],
     }
+    _health_cache.update(at=now, data=data)
+    return data
 
 
 @app.get("/api/setup/hardware")
