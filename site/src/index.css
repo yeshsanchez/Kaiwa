@@ -36,6 +36,36 @@
   --ease-brand: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* ------------------------------------------------------------------ *
+ * Scrollbar — macOS shows thin, transparent overlay scrollbars by
+ * default, but Windows renders a chunky opaque one that clashes with the
+ * light rose theme. Style it thin, transparent-tracked and on-brand so
+ * both platforms match.
+ * ------------------------------------------------------------------ */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(217, 75, 99, 0.35) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  /* 3px transparent border + padding-box clip makes the thumb read as a
+     slim rounded pill with breathing room, like macOS's overlay bar. */
+  background: rgba(217, 75, 99, 0.32);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 75, 99, 0.55);
+  background-clip: padding-box;
+}
+
 /* ------------------------------------------------------------------ */
 html {
   scroll-behavior: smooth;

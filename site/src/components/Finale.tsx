@@ -1,7 +1,10 @@
 import { Download, Github } from "lucide-react";
 import { useReveal } from "@/hooks/useReveal";
 
-const RELEASES = "https://github.com/yeshsanchez/Kaiwa/releases/latest";
+// /releases/latest/download/<asset> always resolves to the newest release's
+// asset, so these buttons never need updating when a new version ships.
+const DMG = "https://github.com/yeshsanchez/Kaiwa/releases/latest/download/Kaiwa-macos.dmg";
+const EXE = "https://github.com/yeshsanchez/Kaiwa/releases/latest/download/Kaiwa-Setup.exe";
 const REPO = "https://github.com/yeshsanchez/Kaiwa";
 
 export default function Finale() {
@@ -48,11 +51,18 @@ export default function Finale() {
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <a
-            href={RELEASES}
+            href={DMG}
             className="inline-flex items-center gap-2.5 rounded-full bg-white px-8 py-4 text-[1.02rem] font-medium text-deeprose shadow-[0_14px_30px_-12px_rgba(120,20,50,0.45)] transition-colors hover:bg-[#fff5f7]"
           >
             <Download className="h-5 w-5" strokeWidth={2.2} />
-            Download for macOS / Windows
+            Download for macOS
+          </a>
+          <a
+            href={EXE}
+            className="inline-flex items-center gap-2.5 rounded-full bg-white px-8 py-4 text-[1.02rem] font-medium text-deeprose shadow-[0_14px_30px_-12px_rgba(120,20,50,0.45)] transition-colors hover:bg-[#fff5f7]"
+          >
+            <Download className="h-5 w-5" strokeWidth={2.2} />
+            Download for Windows
           </a>
           <a
             href={REPO}

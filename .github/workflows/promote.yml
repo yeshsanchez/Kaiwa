@@ -1,0 +1,30 @@
+name: Promote release assets
+
+# Copy the installers (or any assets) from one release to another entirely on
+# GitHub's network — avoids downloading + re-uploading multi-GB binaries over a
+# local connection. The target release must already exist (can be a draft).
+on:
+  workflow_dispatch:
+    inputs:
+      from_tag:
+        description: "Source release tag to copy assets FROM (e.g. v0.2.0)"
+        required: true
+      to_tag:
+        description: "Target release tag to copy assets TO (must already exist)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copy assets between releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p assets && cd assets
+          gh release download "${{ inputs.from_tag }}" --repo "${{ github.repository }}"
+          ls -la
+          gh release upload "${{ inputs.to_tag }}" * --clobber --repo "${{ github.repository }}"
