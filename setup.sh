@@ -41,7 +41,14 @@ if ! ls models/jmdict-eng-*.json >/dev/null 2>&1; then
 fi
 
 if ! command -v whisper-cli >/dev/null 2>&1; then
-  echo "⚠ voice input needs whisper.cpp:  brew install whisper-cpp"
+  if [ "$(uname -s)" = "Darwin" ]; then
+    echo "⚠ voice input needs whisper.cpp:  brew install whisper-cpp"
+  else
+    echo "⚠ voice input needs whisper.cpp (no apt package) — build it from source:"
+    echo "    git clone https://github.com/ggml-org/whisper.cpp && cd whisper.cpp"
+    echo "    cmake -B build && cmake --build build -j --config Release"
+    echo "  then put build/bin/whisper-cli on your PATH (e.g. copy it to /usr/local/bin)"
+  fi
 fi
 
 echo "✓ setup complete — start Kaiwa with ./run.sh"

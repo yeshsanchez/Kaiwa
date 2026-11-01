@@ -21,10 +21,15 @@ fi
 echo "✓ ollama running"
 
 # 2. VOICEVOX (optional, better voices)
-if [ -x "vendor/macos-x64/run" ]; then
+case "$(uname -s)-$(uname -m)" in
+  Darwin-*)     VV_DIR="vendor/macos-x64" ;;
+  Linux-x86_64) VV_DIR="vendor/linux-x64" ;;
+  *)            VV_DIR="" ;;
+esac
+if [ -n "$VV_DIR" ] && [ -x "$VV_DIR/run" ]; then
   if ! curl -s --max-time 2 http://127.0.0.1:50021/version >/dev/null; then
     echo "▶ starting VOICEVOX engine (takes ~20s)…"
-    (cd vendor/macos-x64 && ./run --host 127.0.0.1 --port 50021 >/tmp/voicevox.log 2>&1 &)
+    (cd "$VV_DIR" && ./run --host 127.0.0.1 --port 50021 >/tmp/voicevox.log 2>&1 &)
   fi
 fi
 
@@ -40,7 +45,8 @@ fi
 
 # 3. Tailscale HTTPS link (optional — lets your phone reach Kaiwa from anywhere)
 TS="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
-if [ -x "$TS" ] && "$TS" status >/dev/null 2>&1; then
+[ -x "$TS" ] || TS=$(command -v tailscale || true)
+if [ -n "$TS" ] && "$TS" status >/dev/null 2>&1; then
   "$TS" serve --bg "$PORT" >/dev/null 2>&1 || true
   TSHOST=$("$TS" status --json 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['Self']['DNSName'].rstrip('.'))" 2>/dev/null)
   [ -n "$TSHOST" ] && echo "📱 phone link: https://$TSHOST"
@@ -48,5 +54,6 @@ fi
 
 # 4. App server (0.0.0.0 so phones on the network can connect)
 echo "▶ starting Kaiwa at http://localhost:$PORT"
-(sleep 2 && open "http://localhost:$PORT") &
+OPENER=$(command -v xdg-open || command -v open || true)  # xdg-open first: on Debian `open` may be openvt
+[ -n "$OPENER" ] && (sleep 2 && "$OPENER" "http://localhost:$PORT" >/dev/null 2>&1) &
 exec .venv/bin/python -m uvicorn server.main:app --host 0.0.0.0 --port "$PORT"
