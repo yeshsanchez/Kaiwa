@@ -6,7 +6,7 @@
 
 [![Release](https://img.shields.io/github/v/release/yeshsanchez/Kaiwa)](https://github.com/yeshsanchez/Kaiwa/releases/latest)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
-![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
+![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 ![Local first](https://img.shields.io/badge/AI-100%25%20local%20by%20default-success)
 
 </div>
@@ -58,6 +58,12 @@ short-lived feature branches off it) — then:
 ./run.sh      # starts everything → http://localhost:8130
 ```
 Voice input additionally needs whisper.cpp: `brew install whisper-cpp`
+
+**Linux (Ubuntu)** — from source only; there is no packaged Linux installer.
+```bash
+./setup.sh    # venv + dependencies + speech model + dictionary (~600 MB)
+./run.sh      # starts everything → http://localhost:8130
+```
 
 **Windows** — in PowerShell:
 ```powershell
@@ -162,7 +168,7 @@ Logs land in `/tmp/ollama.log` and `/tmp/voicevox.log`.
 ## The stack
 
 FastAPI + SQLite + vanilla JS (no build step). STT: whisper.cpp. TTS: VOICEVOX,
-AivisSpeech, macOS `say`, or Windows SAPI. Tokenizer/furigana: fugashi (UniDic).
+AivisSpeech, macOS `say`, Windows SAPI, or Linux `espeak-ng`. Tokenizer/furigana: fugashi (UniDic).
 LLM: Ollama or Gemini/OpenAI/Anthropic over plain HTTP.
 
 ## Contributing

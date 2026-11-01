@@ -1,13 +1,14 @@
-"""Text-to-speech: VOICEVOX-protocol engines with macOS `say` fallback.
+"""Text-to-speech: VOICEVOX-protocol engines with OS fallbacks (macOS `say`, Linux `espeak-ng`).
 
 Any engine speaking the VOICEVOX HTTP API works — VOICEVOX itself on :50021
 and AivisSpeech (emotional, anime-style voices from AivisHub) on :10101.
-Voice ids: "vv:<style_id>", "aivis:<style_id>", "say:<VoiceName>".
-Returns WAV bytes. Results cached on disk by (text, voice, speed, intonation).
+Voice ids: "vv:<style_id>", "aivis:<style_id>", "say:<VoiceName>", "espeak:ja".
+Returns WAV bytes (empty if no engine can speak). Results cached on disk by (text, voice, speed, intonation).
 """
 import hashlib
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 
@@ -35,6 +36,10 @@ def voicevox_up() -> bool:
     return engine_up("vv")
 
 
+def _have(cmd: str) -> bool:
+    return shutil.which(cmd) is not None
+
+
 def _clean(text: str) -> str:
     """Strip markdown/emoji-ish noise that TTS engines stumble on."""
     text = re.sub(r"[*_#`~>|]", "", text)
@@ -57,14 +62,17 @@ def list_voices() -> list:
                     })
         except Exception:
             pass
-    try:
-        out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, timeout=10).stdout
-        for line in out.splitlines():
-            if "ja_JP" in line:
-                name = line.split()[0]
-                voices.append({"id": f"say:{name}", "label": name, "engine": "macOS"})
-    except Exception:
-        pass
+    if _have("say"):
+        try:
+            out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, timeout=10).stdout
+            for line in out.splitlines():
+                if "ja_JP" in line:
+                    name = line.split()[0]
+                    voices.append({"id": f"say:{name}", "label": name, "engine": "macOS"})
+        except Exception:
+            pass
+    if _have("espeak-ng"):
+        voices.append({"id": "espeak:ja", "label": "eSpeak NG Japanese (low quality)", "engine": "eSpeak"})
     return voices
 
 
@@ -83,7 +91,11 @@ def default_voice() -> str:
                 return f"{prefix}:{sorted(styles)[0]}"
         except Exception:
             pass
-    return "say:Kyoko"
+    if _have("say"):
+        return "say:Kyoko"
+    if _have("espeak-ng"):
+        return "espeak:ja"
+    return ""  # nothing installed — synthesize() returns b"" and /api/tts reports the failure
 
 
 def synthesize(text: str, voice: str, speed: float = 1.0, intonation: float = 1.0) -> bytes:
@@ -100,13 +112,22 @@ def synthesize(text: str, voice: str, speed: float = 1.0, intonation: float = 1.
             return f.read()
 
     prefix = voice.split(":", 1)[0]
+    fallback = False  # fallback audio must not be cached under the requested voice's key
     if prefix in ENGINES and engine_up(prefix):
         wav = _vv_engine(ENGINES[prefix][1], text, int(voice.split(":", 1)[1]), speed, intonation)
-    else:
+    elif prefix == "espeak" and _have("espeak-ng"):
+        wav = _espeak(text, speed)
+    elif _have("say"):
+        fallback = prefix != "say"
         name = voice[4:] if voice.startswith("say:") else "Kyoko"
         wav = _say(text, name, speed)
+    elif _have("espeak-ng"):
+        fallback = True  # requested engine is down; best available fallback
+        wav = _espeak(text, speed)
+    else:
+        return b""
 
-    if wav:
+    if wav and not fallback:
         with open(cached, "wb") as f:
             f.write(wav)
     return wav
@@ -132,5 +153,17 @@ def _say(text: str, name: str, speed: float) -> bytes:
                        check=True, timeout=60)
         subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16@22050", aiff, wav],
                        check=True, timeout=60)
+        with open(wav, "rb") as f:
+            return f.read()
+
+
+def _espeak(text: str, speed: float) -> bytes:
+    # TODO: espeak-ng's ja voice reads only kana — kanji come out as "Chinese letter"; feed it readings
+    wpm = int(175 * speed)  # espeak-ng default is 175 words per minute
+    with tempfile.TemporaryDirectory() as d:
+        wav = os.path.join(d, "t.wav")
+        # text via stdin so a leading "-" isn't parsed as an option; -w writes a correct WAV header
+        subprocess.run(["espeak-ng", "-v", "ja", "-s", str(wpm), "-w", wav],
+                       input=text.encode(), check=True, timeout=60)
         with open(wav, "rb") as f:
             return f.read()

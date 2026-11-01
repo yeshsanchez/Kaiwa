@@ -101,7 +101,8 @@ def _sanitize_cross_platform():
     fixes = {}
     voice = db.get_setting("voice") or ""
     if voice and not (voice.startswith("vv:")
-                      or (voice.startswith("say:") and shutil.which("say"))):
+                      or (voice.startswith("say:") and shutil.which("say"))
+                      or (voice.startswith("espeak:") and shutil.which("espeak-ng"))):
         fixes["voice"] = ""  # falls back to tts.default_voice()
     d = db.get_setting("backup_dir") or ""
     if d and not os.path.isdir(d) and not os.path.isdir(os.path.dirname(d)):
